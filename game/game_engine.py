@@ -10,6 +10,10 @@ class GameEngine:
 
         self.choices = ["ROCK", "PAPER", "SCISSORS"]
 
+        # Task 3: Adaptive AI history
+        self.player_history = []
+        self.history_limit = 5
+
         btn_w, btn_h = 130, 50
         gap = 20
         total_w = 3 * btn_w + 2 * gap
@@ -56,6 +60,7 @@ class GameEngine:
         self.player_score = 0
         self.cpu_score = 0
 
+        # Task 2: First to 5 wins
         self.target_score = 5
         self.game_over = False
         self.match_winner = ""
@@ -72,6 +77,7 @@ class GameEngine:
         if player == cpu:
             return "TIE"
 
+        # Task 1: Correct Rock Paper Scissors rules
         rules = {
             ("ROCK", "SCISSORS"): "PLAYER",
             ("SCISSORS", "PAPER"): "PLAYER",
@@ -83,12 +89,51 @@ class GameEngine:
 
         return rules.get((player, cpu), "TIE")
 
+    # Task 3: Adaptive AI
+    def get_cpu_choice(self):
+        # For the first few rounds, use normal random choices
+        if len(self.player_history) < 3:
+            return random.choice(self.choices)
+
+        # Look at the player's recent choices
+        recent = self.player_history[-self.history_limit:]
+
+        # Find the choice the player uses most often
+        favorite = max(self.choices, key=recent.count)
+
+        # If the player strongly favors one choice,
+        # make the CPU more likely to counter it
+        if recent.count(favorite) >= 3:
+            counters = {
+                "ROCK": "PAPER",
+                "PAPER": "SCISSORS",
+                "SCISSORS": "ROCK",
+            }
+
+            counter = counters[favorite]
+
+            # 70% chance of choosing the counter
+            if random.random() < 0.7:
+                return counter
+
+        # Otherwise choose randomly
+        return random.choice(self.choices)
+
     def play_round(self, choice):
         if self.game_over:
             return
 
         self.player_choice = choice
-        self.cpu_choice = random.choice(self.choices)
+
+        # Task 3: CPU adapts to player's previous choices
+        self.cpu_choice = self.get_cpu_choice()
+
+        # Record player's choice for future AI decisions
+        self.player_history.append(choice)
+
+        # Keep only the most recent choices
+        if len(self.player_history) > self.history_limit:
+            self.player_history.pop(0)
 
         outcome = self.determine_winner(
             self.player_choice,
@@ -135,10 +180,16 @@ class GameEngine:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_r:
             self.player_score = 0
             self.cpu_score = 0
+
             self.player_choice = None
             self.cpu_choice = None
+
+            # Task 3: Clear AI history when restarting
+            self.player_history = []
+
             self.result_text = "Make your move!"
             self.result_color = (220, 225, 235)
+
             self.game_over = False
             self.match_winner = ""
             self.showing_result = False
@@ -159,8 +210,10 @@ class GameEngine:
         ):
             self.player_choice = None
             self.cpu_choice = None
+
             self.result_text = "Make your move!"
             self.result_color = (190, 195, 205)
+
             self.showing_result = False
 
     def render(self, screen):
